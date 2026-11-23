@@ -1,0 +1,131 @@
+---
+title: "Module 11- IP"
+author: "Marzan Wahab"
+date: "2026-11-20"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(lpSolveAPI)
+```
+```{r}
+#AP is a shipping service that guarantees overnight delivery of packages in the continental US.The company has various hubs at major cities and airports across the country. Packages arereceived at hubs, and then shipped to intermediate hubs or to their final destination.The manager of the AP hub in Cleveland is concerned about labor costs, and is interested indetermining the most effective way to schedule workers. The hub operates seven days a week,and the number of packages it handles varies from one day to another. The table below provides an estimate of the number of workers needed each day of the week.
+#Package handlers at AP are guaranteed a five-day work week with two consecutive days off. Thebase wage for the handlers is $750 per week. Workers working on Saturday or Sunday receive anadditional $25 per day. per table weekly wage ranges from $750 to $800
+# objective:the manager wants to keep the total wage expenses as low as possible while ensuring that there are sufficient number of workers available each day.
+```
+
+```{r}
+model <- read.lp("AP2.lp")
+solve(model)
+get.objective(model)
+get.variables(model)
+```
+
+```{r}
+# create LP model
+# 7 constraints and 7 decision variables
+ap <- make.lp(0,7)
+
+# minimize weekly labor costs
+lp.control(ap, sense= "min", verbose="neutral")
+
+# objective function
+set.objfn(ap, c(775, 800, 800, 800, 800, 775, 750))
+
+# add daily staffing contraints
+# sunday at least 18 workers
+add.constraint(ap, c(0,1,1,1,1,1,0), ">=", 18)
+
+# monday at least 27 workers
+add.constraint(ap, c(0,0,1,1,1,1,1), ">=", 27)
+
+# Tuesday at least 22 workers
+add.constraint(ap, c(1,0,0,1,1,1,1), ">=", 22)
+
+# wednesday at least 25 workers
+add.constraint(ap, c(1,1,0,0,1,1,1), ">=", 26)
+
+# thursday  at least 26 workers
+add.constraint(ap, c(1,1,1,0,0,1,1), ">=", 25)
+
+# friday  at least 21 workers
+add.constraint(ap, c(1,1,1,1,0,0,1), ">=", 21)
+
+# saturday  at least 19 workers
+add.constraint(ap, c(1,1,1,1,1,0,0), ">=", 19)
+
+# rows and colm names
+Rownames <- c( "Sunday","Monday","Tuesday",
+               "Wednesday","Thursday","Friday","Saturday" )
+
+Colnames <- c("Shift1","Shift2","shift3", "Shift4",
+              "Shift5", "Shift6","Shift 7")
+dimnames(ap) <- list(Rownames, Colnames)
+
+# All decision variables must be integer
+set.type(ap, columns = 1:7, type = "integer")
+
+# solve IP 
+solve(ap)
+# min weekly labor cost
+get.objective(ap)
+
+# optimal worker assigned to rach shift
+get.variables(ap)
+
+# Display model
+ap
+
+```
+
+```{r}
+#per Assignment find how many workers are available each day
+# find optimal shift assignments
+workers <- get.variables(ap)
+
+# number of workers needed each day of the week.(staffing requirement)
+staffing <- c(18, 27, 22, 26, 25, 21,19)
+
+# available workers each day
+availablewor<- as.vector(
+  get.constraints(ap)
+)
+
+# results
+results <- data.frame(
+  Day=Rownames,
+  Staffing=staffing,
+  Available= availablewor,
+  exceedvalue= availablewor-staffing
+)
+print(results)
+
+# Total employee
+sum(workers)
+# minimum weekly wage cost
+get.objective(ap)
+```
+
+```{r}
+##The mathematical model for integer programming is the linear programming model with the one additional restriction that the variables must have integer.our IP model used 7 decision variable representing the 
+# of employees assigned to each shift.the objective was- The manager wants to keep the total wage expenses as low as possible while ensuring that there are sufficient number of workers available each day. 
+# per R result shows that the minimum weekly labor cost are determined to be $25,675 with 33 employees. 
+# the model uses integer restricting because employee assignments must be whole number.The strategy for branch‐and‐bound is simple. As we know that any IP problem has a finite number of solutions, it should be possible to enumerate these solutions. But,even a finite set of solutions can be large, but if we can enumerate solutions while discarding solutions that will not be optimal or feasible, then we don’t have to enumerate ALL solutions, only those most likely to be optimal and feasible. In this case this method allows the optimization process to identify min cost integer solution while satisfying the operation constraints.
+# the results shows how IP can support workforce planning by balancing labor expenses, employee scheduling requirements and daily operations needs.the staffing requirements are satisfied all seven days .
+# the optimal solution assigns number of employees to shift 1-7 is 2,4,5,0,8,1,13 respectively.daily staffing assignment confirms that all workforce requirement s are satisfied.
+# Sunday, Monday, Thursday and Saturday have exactly the required # of employees while Tuesday and wednesday have 2 additional workers and Friday has 3. these additional staffing are acceptable because the model allows employee availability to exceed the minimum requirements. 
+# Overall the results satisfies that IP provided an effective approach to workforce planning. By implementing the optimal schedule , AP can maintain adequate daily staffing while minimizing its weekly laboe expenses to $25,675. 
+
+```
+
+
+
+
+
+
+## R Markdown
+
